@@ -1,4 +1,4 @@
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import pool from './connectionpool';
 import sql from 'mssql';
 import cors from 'cors';
@@ -9,22 +9,31 @@ const port = 3000;
 
 app.use(cors({
     origin: 'http://localhost:3001'
-  }));
-  
+}));
+
+app.use(express.json());
+
+
+// Middleware for authorization
+const authorize = (req: Request, res: Response, next: NextFunction) => {
+    const token = req.headers.authorization;
+    if (token === 'swipeApp') { 
+        next(); // Token is valid, proceed to the next middleware
+    } else {
+        res.status(401).send('Unauthorized');
+    }
+};
 
 
 const getDailyRecommendations = async (userId: string): Promise<User[]> => {
     try {
-        console.log("Testing=====");
         await pool.connect();
-
         const userQuery = 'SELECT * FROM users WHERE id = @userId';
         const userResult = await pool.request()
             .input('userId', sql.UniqueIdentifier, userId)
             .query(userQuery);
 
         const user = userResult.recordset[0];
-
         if (!user) {
             throw new Error('User not found');
         }
@@ -59,8 +68,9 @@ const getDailyRecommendations = async (userId: string): Promise<User[]> => {
     }
 };
 
-app.get('/api/recommendations/:userId', async (req: Request, res: Response) => {
+app.get('/api/recommendations/:userId', authorize,async (req: Request, res: Response) => {
     const userId = req.params.userId;
+    console.log(userId);
 
     try {
         const recommendations = await getDailyRecommendations(userId);
@@ -77,4 +87,3 @@ app.get('/api/recommendations/:userId', async (req: Request, res: Response) => {
 app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}/`);
 });
-
