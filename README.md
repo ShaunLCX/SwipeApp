@@ -15,3 +15,13 @@ please do ensure this running at port 3001
 
 backend
 please do ensure this running at port 3000
+
+To run
+cd backend
+ts-node RecommendedController.ts
+
+
+Open new terminal
+cd frontend
+npm install
+npm start
